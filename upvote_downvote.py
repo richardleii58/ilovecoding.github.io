@@ -1,3 +1,4 @@
+
 import json 
 import requests
 import time
@@ -97,7 +98,7 @@ def add_points(updates):
         db['Ph'].append([to_add_to,1,date_to_add.isoformat()])
       elif ('text' in x['message']) or ('reply_to_message' in x['message'] and x['message']['text']!='+'):
         to_add_to=str(x['message']['from']['id'])
-        points=len(x['message']['text']//25
+        points=len(x['message']['text']//25)
         db['inactive'][to_add_to]=0
         if points>3:
           points=3
