@@ -128,3 +128,73 @@ def admin(x):
             msg_send = ''
             qn_list.sort()
             for qnnn in qn_list:
+                msg_send += qnnn + ':' + db['qns'][qnnn]['A'] + '\n\n'
+            if not qn_list:
+                send_message2('Sorry, I don\'t know the answer.', chat)
+            else:
+                send_message2(msg_send, chat)
+
+def echo_all(updates):
+    for update in updates["result"]:
+        try:
+            text, chat = get_last_chat_id_and_text(updates)
+            if chat == -758984080:
+                admin(update)
+            else:
+                cursor.execute('''
+                    SELECT COUNT(*) FROM users WHERE chat_id = %s;
+                ''', (chat,))
+                exists = cursor.fetchone()[0]
+                if exists == 0:
+                    cursor.execute('''
+                        INSERT INTO users (chat_id, first_name, date_joined)
+                        VALUES (%s, %s, %s);
+                    ''', (chat, update['message']['chat']['first_name'], datetime.date.today()))
+                    conn.commit()
+                if text[:5].upper() == 'REPLY':
+                    qn_list = []
+                    for item in fetch_all_questions():
+                        for word in item['keywords']:
+                            if word.upper() in text.upper():
+                                qn_list.append(item['question_number'])
+                    qn_list = list(set(qn_list))
+                    qn_list.sort()
+                    msg_send = ''
+                    for qnnn in qn_list:
+                        msg_send += qnnn + ':' + item['answer'] + '\n\n'
+                    if not qn_list:
+                        send_message2('Sorry, I don\'t know the answer.', chat)
+                    else:
+                        send_message2(msg_send, chat)
+                elif text.upper() == 'NEW' or text.upper() == 'HELLO':
+                    send_message2(f'Hello {update["message"]["chat"]["first_name"]}! How can I help you today?', chat)
+                else:
+                    qn_list = []
+                    for item in fetch_all_questions():
+                        for word in item['keywords']:
+                            if word.upper() in text.upper():
+                                qn_list.append(item['question_number'])
+                    qn_list = list(set(qn_list))
+                    qn_list.sort()
+                    msg_send = ''
+                    for qnnn in qn_list:
+                        msg_send += qnnn + ':' + item['answer'] + '\n\n'
+                    if not qn_list:
+                        send_message2('Sorry, I don\'t know the answer.', chat)
+                    else:
+                        send_message2(msg_send, chat)
+        except Exception as e:
+            print(e)
+
+def main():
+    keep_alive.keep_alive()
+    last_update_id = None
+    while True:
+        updates = get_updates(last_update_id)
+        if "result" in updates and len(updates["result"]) > 0:
+            last_update_id = get_last_update_id(updates) + 1
+            echo_all(updates)
+        time.sleep(0.5)
+
+if __name__ == '__main__':
+    main()
